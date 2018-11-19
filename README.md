@@ -2,7 +2,7 @@ go-radix [![Build Status](https://travis-ci.org/ganesh-karthick/go-radix.svg?bra
 =========
 
 Provides the `radix` package that implements a [radix tree](http://en.wikipedia.org/wiki/Radix_tree).
-The package provides a single `Tree` based on [armon/go-radix][https://github.com/armon/go-radix]
+The package provides a single `Tree` based on [armon/go-radix](https://github.com/armon/go-radix)
 and a  thread Safe ``ConcurrentTree`` implementation on top of it, optimized for sparse nodes.
 
 As a radix tree, it provides the following:

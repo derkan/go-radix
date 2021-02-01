@@ -20,6 +20,7 @@ Changes in this PR
 - [Fix panic when node is deleted while walking](https://github.com/armon/go-radix/pull/14)
 - [Documentation fixes](https://github.com/morrowc/go-radix.git)
 - [Add thread safe concurrent radix tree implementation](https://github.com/ganesh-karthick/go-radix)
+- [Add function to get values under a given prefix](https://github.com/lleonini/go-radix.git)
 
 Documentation
 =============

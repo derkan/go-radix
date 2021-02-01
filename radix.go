@@ -113,13 +113,13 @@ type Tree struct {
 	size int
 }
 
-// Thread Safe Implementation of Radix Tree
+// ConcurrentTree is Thread Safe Implementation of Radix Tree
 type ConcurrentTree struct {
 	*Tree
 	*sync.RWMutex
 }
 
-// New returns an empty Concurrent Tree
+// NewConcurrentTree returns an empty Concurrent Tree
 func NewConcurrentTree() *ConcurrentTree {
 	t := &ConcurrentTree{NewFromMap(nil), new(sync.RWMutex)}
 	return t

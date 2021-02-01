@@ -828,7 +828,7 @@ func TestConcurrentTreeOperations(t *testing.T) {
 	wg.Wait()
 
 	if r.Len() != len(initialKeys)+len(addedKeys)-len(removedKeys) {
-		// lib
+		// TODO: deleting may be leaving some orphan nodes??
 		// t.Fatalf("bad len: %v %v", r.Len(), len(initialKeys)+len(addedKeys)-len(removedKeys))
 	}
 }

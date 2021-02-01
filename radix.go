@@ -3,6 +3,7 @@ package radix
 import (
 	"sort"
 	"strings"
+	"sync"
 )
 
 // WalkFn is used when walking the tree. Takes a
@@ -112,6 +113,18 @@ type Tree struct {
 	size int
 }
 
+// Thread Safe Implementation of Radix Tree
+type ConcurrentTree struct {
+	*Tree
+	*sync.RWMutex
+}
+
+// New returns an empty Concurrent Tree
+func NewConcurrentTree() *ConcurrentTree {
+	t := &ConcurrentTree{NewFromMap(nil), new(sync.RWMutex)}
+	return t
+}
+
 // New returns an empty Tree
 func New() *Tree {
 	return NewFromMap(nil)
@@ -127,9 +140,29 @@ func NewFromMap(m map[string]interface{}) *Tree {
 	return t
 }
 
+// NewConcurrentTreeFromMap returns a new ConcurrentTree containing the keys
+// from an existing map
+func NewConcurrentTreeFromMap(m map[string]interface{}) *ConcurrentTree {
+	t := &Tree{root: &node{}}
+	ct := &ConcurrentTree{t, new(sync.RWMutex)}
+	ct.RLock()
+	defer ct.RUnlock()
+	for k, v := range m {
+		t.Insert(k, v)
+	}
+	return ct
+}
+
 // Len is used to return the number of elements in the tree
 func (t *Tree) Len() int {
 	return t.size
+}
+
+// Len is used to return the number of elements in the tree
+func (t *ConcurrentTree) Len() int {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.Len()
 }
 
 // longestPrefix finds the length of the shared prefix
@@ -149,7 +182,15 @@ func longestPrefix(k1, k2 string) int {
 }
 
 // Insert is used to add a newentry or update
-// an existing entry. Returns true if an existing record is updated.
+// an existing entry. Returns if updated.
+func (t *ConcurrentTree) Insert(s string, v interface{}) (interface{}, bool) {
+	t.Lock()
+	defer t.Unlock()
+	return t.Tree.Insert(s, v)
+}
+
+// Insert is used to add a newentry or update
+// an existing entry. Returns if updated.
 func (t *Tree) Insert(s string, v interface{}) (interface{}, bool) {
 	var parent *node
 	n := t.root
@@ -240,6 +281,14 @@ func (t *Tree) Insert(s string, v interface{}) (interface{}, bool) {
 
 // Delete is used to delete a key, returning the previous
 // value and if it was deleted
+func (t *ConcurrentTree) Delete(s string) (interface{}, bool) {
+	t.Lock()
+	defer t.Unlock()
+	return t.Tree.Delete(s)
+}
+
+// Delete is used to delete a key, returning the previous
+// value and if it was deleted
 func (t *Tree) Delete(s string) (interface{}, bool) {
 	var parent *node
 	var label byte
@@ -293,6 +342,15 @@ DELETE:
 	}
 
 	return leaf.val, true
+}
+
+// DeletePrefix is used to delete the subtree under a prefix
+// Returns how many nodes were deleted
+// Use this to delete large subtrees efficiently
+func (t *ConcurrentTree) DeletePrefix(s string) int {
+	t.Lock()
+	defer t.Unlock()
+	return t.Tree.DeletePrefix(s)
 }
 
 // DeletePrefix is used to delete the subtree under a prefix
@@ -352,6 +410,15 @@ func (n *node) mergeChild() {
 
 // Get is used to lookup a specific key, returning
 // the value and if it was found
+func (t *ConcurrentTree) Get(s string) (interface{}, bool) {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.Get(s)
+
+}
+
+// Get is used to lookup a specific key, returning
+// the value and if it was found
 func (t *Tree) Get(s string) (interface{}, bool) {
 	n := t.root
 	search := s
@@ -378,6 +445,15 @@ func (t *Tree) Get(s string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+// LongestPrefix is like Get, but instead of an
+// exact match, it will return the longest prefix match.
+func (t *ConcurrentTree) LongestPrefix(s string) (string, interface{}, bool) {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.LongestPrefix(s)
+
 }
 
 // LongestPrefix is like Get, but instead of an
@@ -417,6 +493,13 @@ func (t *Tree) LongestPrefix(s string) (string, interface{}, bool) {
 }
 
 // Minimum is used to return the minimum value in the tree
+func (t *ConcurrentTree) Minimum() (string, interface{}, bool) {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.Minimum()
+}
+
+// Minimum is used to return the minimum value in the tree
 func (t *Tree) Minimum() (string, interface{}, bool) {
 	n := t.root
 	for {
@@ -430,6 +513,13 @@ func (t *Tree) Minimum() (string, interface{}, bool) {
 		}
 	}
 	return "", nil, false
+}
+
+// Maximum is used to return the minimum value in the tree
+func (t *ConcurrentTree) Maximum() (string, interface{}, bool) {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.Maximum()
 }
 
 // Maximum is used to return the maximum value in the tree
@@ -451,6 +541,13 @@ func (t *Tree) Maximum() (string, interface{}, bool) {
 // Walk is used to walk the tree
 func (t *Tree) Walk(fn WalkFn) {
 	recursiveWalk(t.root, fn)
+}
+
+// WalkPrefix is used to walk the tree under a prefix
+func (t *ConcurrentTree) WalkPrefix(prefix string, fn WalkFn) {
+	t.RLock()
+	defer t.RUnlock()
+	t.Tree.WalkPrefix(prefix, fn)
 }
 
 // WalkPrefix is used to walk the tree under a prefix
@@ -483,6 +580,16 @@ func (t *Tree) WalkPrefix(prefix string, fn WalkFn) {
 		}
 	}
 
+}
+
+// WalkPath is used to walk the tree, but only visiting nodes
+// from the root down to a given leaf. Where WalkPrefix walks
+// all the entries *under* the given prefix, this walks the
+// entries *above* the given prefix.
+func (t *ConcurrentTree) WalkPath(path string, fn WalkFn) {
+	t.RLock()
+	defer t.RUnlock()
+	t.Tree.WalkPath(path, fn)
 }
 
 // WalkPath is used to walk the tree, but only visiting nodes
@@ -537,6 +644,13 @@ func recursiveWalk(n *node, fn WalkFn) bool {
 		}
 	}
 	return false
+}
+
+// ToMap is used to walk the tree and convert it into a map
+func (t *ConcurrentTree) ToMap() map[string]interface{} {
+	t.RLock()
+	defer t.RUnlock()
+	return t.Tree.ToMap()
 }
 
 // ToMap is used to walk the tree and convert it into a map

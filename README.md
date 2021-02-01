@@ -17,6 +17,12 @@ Documentation
 
 The full documentation is available on [Godoc](http://godoc.org/github.com/armon/go-radix).
 
+Changes in this PR
+==================
+- [Speedup Insert](https://github.com/armon/go-radix/pull/19)
+- [Fix panic when node is deleted while walking](https://github.com/armon/go-radix/pull/14)
+
+
 Example
 =======
 
